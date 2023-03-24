@@ -73,12 +73,17 @@ def calculate_defensive_impact(defense):
 
 # Update a player's defensive stats
 def update_defensive_stats(game_result, defense, offense, success):
-    # Update defensive player's stats
+    game_result[defense["team"]][defense["name"]]["field_goals_attempted"] += 1
+    game_result[defense["team"]][defense["name"]]["rebounds"] += 1
     game_result[defense["team"]][defense["name"]]["rebounds_defended"] += 1
-    game_result[defense["team"]][defense["name"]]["steals"] += 1 if not success else 0
-    game_result[defense["team"]][defense["name"]]["blocks"] += 1 if not success else 0
+    if success:
+        game_result[defense["team"]][defense["name"]]["steals"] += 1
+        game_result[defense["team"]][defense["name"]]["points_allowed"] += 0
+    else:
+        game_result[defense["team"]][defense["name"]]["points_allowed"] += 1 if not offense["points"] else 0
 
-    # Update team defensive stats
+
+# Update team defensive stats
     team_defense = game_result[defense["team"]]
     team_defense["points_allowed"] = team_defense.get("points_allowed", 0) + 1 if not success else team_defense.get("points_allowed", 0)
     team_defense["field_goals_attempted_defended"] = team_defense.get("field_goals_attempted_defended", 0) + 1
@@ -151,46 +156,19 @@ def update_offensive_stats(game_result, offense, defense, success):
 def play_game(team1_starters, team2_starters):
     game_result = {"team1": {}, "team2": {}}
     for possession in range(NUM_POSSESSIONS):
-        # Offensive possession
+# Offensive possession
         offense = random.choice(team1_starters)
         defense = random.choice(team2_starters)
         success = run_offensive_possession(offense, defense)
         update_offensive_stats(game_result, offense, defense, success)
         update_defensive_stats(game_result, defense, offense, success)
 
-        # Defensive possession
+# Defensive possession
         offense = random.choice(team2_starters)
         defense = random.choice(team1_starters)
         success = run_offensive_possession(offense, defense)
         update_offensive_stats(game_result, offense, defense, success)
         update_defensive_stats(game_result, defense, offense, success)
-
-    # Calculate final score
-    team1_score = sum(player["points"] for player in game_result["team1"].values())
-    team2_score = sum(player["points"] for player in game_result["team2"].values())
-    game_result["team1_score"] = team1_score
-    game_result["team2_score"] = team2_score
-
-    # Determine the winner
-    if team1_score > team2_score:
-        game_result["winner"] = "team1"
-    elif team2_score > team1_score:
-        game_result["winner"] = "team2"
-    else:
-        game_result["winner"] = "tie"
-
-    return game_result
-
-
-# Set default values for stats if they don't exist
-    for stat in ["points", "rebounds", "assists", "steals", "blocks", "field_goals_attempted", "field_goals_made", "three_points_attempted", "three_points_made", "free_throws_attempted", "free_throws_made", "field_goal_percentage", "three_point_percentage", "free_throw_percentage"]:
-        game_result.setdefault(offense["team"], {}).setdefault(offense["name"], {}).setdefault(stat, 0)
-
-
-# Swap offense and defense and repeat the process for the second half of the possession
-    offense, defense = defense, offense
-    success = run_offensive_possession(offense, defense)
-    update_offensive_stats(game_result, offense, defense, success)
 
 # Calculate final score
     team1_score = sum(player["points"] for player in game_result["team1"].values())
@@ -205,6 +183,12 @@ def play_game(team1_starters, team2_starters):
         game_result["winner"] = "team2"
     else:
         game_result["winner"] = "tie"
+
+    # Set default values for stats if they don't exist
+    for stat in ["points", "rebounds", "assists", "steals", "blocks", "field_goals_attempted", "field_goals_made", "three_points_attempted", "three_points_made", "free_throws_attempted", "free_throws_made", "field_goal_percentage", "three_point_percentage", "free_throw_percentage", "rebounds_defended", "points_allowed"]:
+        for team_key in ["team1", "team2"]:
+            for player_name in game_result[team_key]:
+                game_result.setdefault(team_key, {}).setdefault(player_name, {}).setdefault(stat, 0)
 
     return game_result
 
@@ -243,23 +227,24 @@ def update_game_results(game_result, game_results):
 def run_simulation(team1_starters, team2_starters, num_simulations):
     game_results = {
         "num_games": 0,
-        "team1": {player["name"]: {"points": 0, "rebounds": 0, "assists": 0, "steals": 0, "blocks": 0, "field_goals_attempted": 0, "field_goals_made": 0, "three_points_attempted": 0, "three_points_made": 0, "free_throws_attempted": 0, "free_throws_made": 0, "field_goal_percentage": 0, "three_point_percentage": 0, "free_throw_percentage": 0} for player in team1_starters},
-        "team2": {player["name"]: {"points": 0, "rebounds": 0, "assists": 0, "steals": 0, "blocks": 0, "field_goals_attempted": 0, "field_goals_made": 0, "three_points_attempted": 0, "three_points_made": 0, "free_throws_attempted": 0, "free_throws_made": 0, "field_goal_percentage": 0, "three_point_percentage": 0, "free_throw_percentage": 0} for player in team2_starters},
+        "team1": {player["name"]: {"points": 0, "rebounds": 0, "assists": 0, "steals": 0, "blocks": 0, "field_goals_attempted": 0, "field_goals_made": 0, "three_points_attempted": 0, "three_points_made": 0, "free_throws_attempted": 0, "free_throws_made": 0, "field_goal_percentage": 0, "three_point_percentage": 0, "free_throw_percentage": 0, "rebounds_defended": 0} for player in team1_starters},
+        "team2": {player["name"]: {"points": 0, "rebounds": 0, "assists": 0, "steals": 0, "blocks": 0, "field_goals_attempted": 0, "field_goals_made": 0, "three_points_attempted": 0, "three_points_made": 0, "free_throws_attempted": 0, "free_throws_made": 0, "field_goal_percentage": 0, "three_point_percentage": 0, "free_throw_percentage": 0, "rebounds_defended": 0} for player in team2_starters},
         "team1_score": 0,
         "team2_score": 0,
         "team1_wins": 0,
         "team2_wins": 0,
-        "tie_games": 0
-    }
+        "num_ties": 0
+ }
+
     for i in range(num_simulations):
         game_result = play_game(team1_starters, team2_starters)
         update_game_results(game_result, game_results)
 
         # Update win counts
         if game_result["winner"] == "team1":
-            game_results["team1_wins"] += 1
+            game_results["team1"] += 1
         elif game_result["winner"] == "team2":
-            game_results["team2_wins"] += 1
+            game_results["team2"] += 1
         else:
             game_results["tie_games"] += 1
 
@@ -283,24 +268,52 @@ def run_simulation(team1_starters, team2_starters, num_simulations):
                 if free_throws_attempted > 0:
                     player_stats["free_throw_percentage"] = free_throws_made / free_throws_attempted
 
-    game_results["num_games"] = num_simulations
-    return game_results
+    game_results["num_games"]
 
-# defining the game results teamplate
+
 # defining the game results template
 def initialize_game_results(team1_starters, team2_starters):
     game_results = {
         "num_games": 0,
-        "team1": {player["name"]: {"points": 0, "rebounds": 0, "assists": 0, "steals": 0, "blocks": 0, "field_goals_attempted": 0, "field_goals_made": 0, "three_points_attempted": 0, "three_points_made": 0, "free_throws_attempted": 0, "free_throws_made": 0, "field_goal_percentage": 0, "three_point_percentage": 0, "free_throw_percentage": 0, "rebounds_defended": 0} for player in team1_starters},
-        "team2": {player["name"]: {"points": 0, "rebounds": 0, "assists": 0, "steals": 0, "blocks": 0, "field_goals_attempted": 0, "field_goals_made": 0, "three_points_attempted": 0, "three_points_made": 0, "free_throws_attempted": 0, "free_throws_made": 0, "field_goal_percentage": 0, "three_point_percentage": 0, "free_throw_percentage": 0, "rebounds_defended": 0} for player in team2_starters},
-        "team1_score": 0,
-        "team2_score": 0,
-        "team1_wins": 0,
-        "team2_wins": 0,
-        "tie_games": 0
+        "team1": {player["name"]: {
+            "points": 0,
+            "rebounds": 0,
+            "assists": 0,
+            "steals": 0,
+            "blocks": 0,
+            "field_goals_attempted": 0,
+            "field_goals_made": 0,
+            "three_points_attempted": 0,
+            "three_points_made": 0,
+            "free_throws_attempted": 0,
+            "free_throws_made": 0,
+            "field_goal_percentage": 0,
+            "three_point_percentage": 0,
+            "free_throw_percentage": 0,
+            "rebounds_defended": 0,
+            "points_allowed": 0
+        } for player in team1_starters},
+        "team2": {player["name"]: {
+            "points": 0,
+            "rebounds": 0,
+            "assists": 0,
+            "steals": 0,
+            "blocks": 0,
+            "field_goals_attempted": 0,
+            "field_goals_made": 0,
+            "three_points_attempted": 0,
+            "three_points_made": 0,
+            "free_throws_attempted": 0,
+            "free_throws_made": 0,
+            "field_goal_percentage": 0,
+            "three_point_percentage": 0,
+            "free_throw_percentage": 0,
+            "rebounds_defended": 0,
+            "points_allowed": 0
+        } for player in team2_starters}
     }
 
-    # Set all keys for offensive stats
+# Set all keys for offensive stats
     for team_key in ["team1", "team2"]:
         for player_name in game_results[team_key]:
             game_results[team_key][player_name].setdefault("points", 0)
@@ -336,7 +349,7 @@ def display_box_score(game_results):
     print(f"Team 1 wins: {game_results['team1_wins']}, Team 2 wins: {game_results['team2_wins']}, Tie games: {game_results['tie_games']}")
 
 def main():
-    # Load player data from CSV file
+# Load player data from CSV file
     players = []
     with open("output.csv", "r") as csvfile:
         reader = csv.DictReader(csvfile)
